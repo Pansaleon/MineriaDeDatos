@@ -1,0 +1,7 @@
+Regresión lineal nos sirve para saber el tipo de comportamiento nuestros dtos 
+
+Se hace por medio de la varianza.
+
+Para poder hacer regresión lineal se debe transformar los datos a números reales.
+En el caso de fechas, se debe enumerar los datos.
+
