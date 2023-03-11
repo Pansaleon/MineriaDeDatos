@@ -24,5 +24,8 @@ def print_tabulate(df: pd.DataFrame):
 #Code
 
 #from file
-df = pd.read_csv("D:\Docs\8vo Semestre\Mineria de Datos Repo\India Tourism 2014-2020\Country Quater Wise Visitors.csv")
+df = pd.read_csv(r"C:\Users\Dell\Desktop\mineria-datos-rsjm\MineriaDeDatos\India Tourism 2014-2020\Country Quater Wise Visitors.csv")
+df2 = pd.read_csv(r"C:\Users\Dell\Desktop\mineria-datos-rsjm\MineriaDeDatos\India Tourism 2014-2020\General Data 2014-2020.csv")
+df3 = pd.read_csv(r"C:\Users\Dell\Desktop\mineria-datos-rsjm\MineriaDeDatos\India Tourism 2014-2020\Country Wise Age Group.csv")
 print_tabulate(df)
+print_tabulate(df2)
