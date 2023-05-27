@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 import ast
 pd.plotting.register_matplotlib_converters()
-import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 from datetime import datetime
@@ -14,35 +15,14 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from collections import Counter
+from statsmodels.tsa.api import ExponentialSmoothing
+
 
 def read_dataset():
     file_path = (r"D:\Docs\9no Semestre\Minería de Datos\MineriaDeDatos\games.csv")
     data = pd.read_csv(file_path, index_col = 0)
     return data
 
-data = read_dataset()
-
-#Visualizar datos
-
-def scatter_plot(data, x_column, y_column):
-    # Crear una figura y un conjunto de ejes
-    fig, ax = plt.subplots()
-
-    # Generar el gráfico de dispersión
-    ax.scatter(data[x_column], data[y_column])
-
-    # Configurar etiquetas y título del gráfico
-    ax.set_xlabel(x_column)
-    ax.set_ylabel(y_column)
-    ax.set_title('Gráfico de dispersión')
-    # Utilizar la paleta de colores especificada en el gráfico de barras
-    # Mostrar el gráfico
-    plt.show()
-
-
-#
 def calcular_puntuacion_popularidad(data):
     # Calcular la puntuación de popularidad para cada juego
     data['Popularidad'] = (data['Rating'] * 0.4) + (data['Number of Reviews'] * 0.3) + (data['Plays'] * 0.1) + (data['Wishlist'] * 0.2)
@@ -51,6 +31,10 @@ def calcular_puntuacion_popularidad(data):
     data = data.sort_values(by='Popularidad', ascending=False)
     
     return data
+
+data = read_dataset()
+
+
 
 #Data transformation 
 
@@ -71,9 +55,19 @@ data['Summary'] = data['Summary'].replace(np.nan, 'Unknown Summary')
 total_null = data.isnull().sum().sort_values(ascending = False)
 percent = ((data.isnull().sum()/data.isnull().count())*100).sort_values(ascending = False)
 
+
 missing_data = pd.concat([total_null,percent.round(2)],axis=1,keys=['Total Missing','In Percent'])
 
+
+
+#Tratar la data duplicada
+
+
+
 data = data.drop_duplicates().sort_index()
+
+#Ya no tenemos data duplicada
+
 
 data.loc[data['Release Date'] == 'releases on TBD']
 
@@ -81,6 +75,8 @@ data.loc[data['Release Date'] == 'releases on TBD']
 dt = datetime.now()
 
 dt_str = dt.strftime('%b %d, %Y')
+
+
 
 data['Release Date'] = data['Release Date'].str.replace('releases on TBD', dt_str )
 
@@ -96,12 +92,22 @@ data['Month'] = data['Release Date'].dt.strftime('%b')
 data['Year'] = data['Release Date'].dt.year
 data['Week day'] = data['Release Date'].dt.day_name()
 
+
+
+
+
+
 data['Times Listed'] = data['Times Listed'].str.replace('K', '').astype(float) * 1000
 data['Number of Reviews'] = data['Number of Reviews'].str.replace('K', '').astype(float) * 1000
 data['Plays'] = data['Plays'].str.replace('K', '').astype(float) * 1000
 data['Playing'] = data['Playing'].str.replace('K', '').astype(float) * 1000
 data['Backlogs'] = data['Backlogs'].str.replace('K', '').astype(float) * 1000
 data['Wishlist'] = data['Wishlist'].str.replace('K', '').astype(float) * 1000
+
+
+
+
+
 
 data['Team'] = data['Team'].apply(lambda x: ast.literal_eval(x))
 
@@ -113,6 +119,9 @@ df_team = pd.DataFrame({
 # use the explode method to transform the 'Team' column
 df_team = df_team.explode('Team')
 
+
+
+
 data['Genres'] = data['Genres'].apply(lambda x: ast.literal_eval(x))
 
 # create a sample DataFrame with a column containing multiple values
@@ -121,45 +130,131 @@ df_genres = pd.DataFrame({
     'Genres': data['Genres'].tolist()
 })
 # use the explode method to transform the 'Team' column
-df_team = df_team.explode('Team')
-
-print(df_team.Team)
-
-nombres_genres = " ".join(df_team['Team'].tolist())
-
-with open('Team.txt', 'w', encoding='utf-8') as f:
-    f.write(nombres_genres)
-
-def open_file(path: str) -> str:
-    content = ""
-    with open(path, "r") as f:
-        content = f.readlines()
-    return " ".join(content)
+df_genres = df_genres.explode('Genres')
 
 
-all_words = ""
-frase = open_file("Team.txt") # "hola a todos muchas  palabras palabras hola muchas hola hola hola palabras palabras hola muchas hola hola hola palabras palabras hola muchas hola hola hola palabras palabras hola muchas hola hola hola"
-palabras = frase.rstrip().split(" ")
 
-Counter(" ".join(palabras).split()).most_common(10)
-# looping through all incidents and joining them to one text, to extract most common words
-for arg in palabras:
-    tokens = arg.split()
-    all_words += " ".join(tokens) + " "
+data = data.drop(['Release Date', 'Team', 'Summary', 'Reviews'], axis = 1)
 
-print(all_words)
-wordcloud = WordCloud(
-    background_color="white", min_font_size=5
-).generate(all_words)
 
-# print(all_words)
-# plot the WordCloud image
-plt.close()
-plt.figure(figsize=(5, 5), facecolor=None)
-plt.imshow(wordcloud)
-plt.axis("off")
-plt.tight_layout(pad=0)
 
-# plt.show()
-plt.savefig("img/word_cloud.png")
-plt.close()
+
+
+# Supongamos que tienes un DataFrame llamado 'data' que contiene tus datos
+# y quieres predecir el nivel de popularidad ('Popularity') de un juego
+data = calcular_puntuacion_popularidad(data)
+
+# Set the size of the plot
+plt.figure(figsize=(12, 8))
+
+# Set the style of the plot
+sns.set_style('whitegrid')
+
+# Plot the joint plot
+sns.jointplot(
+    x='Rating',
+    y='Number of Reviews',
+    data=data,
+    alpha=0.8,
+    edgecolor='black',
+    linewidth=0.5,
+    s=80,
+    kind='scatter',
+)
+
+# Set the axis labels and title
+plt.xlabel('Rating', fontsize=14)
+plt.ylabel('Number of Reviews', fontsize=14)
+plt.title('Relación entre el rating y el número de reviews', fontsize=16, pad=100)
+
+# Set the axis tick label size
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+
+# Add grid lines to the plot
+plt.grid(True)
+
+# Show the plot
+plt.show()
+
+# Set the size of the plot
+plt.figure(figsize=(12, 8))
+
+# Set the style of the plot
+sns.set_style('whitegrid')
+
+# Sort the data by Release Date
+data_sorted = data.sort_values('Year')
+
+# Plot the scatter plot
+sns.scatterplot(
+    x='Year',
+    y='Number of Reviews',
+    data=data_sorted,
+    alpha=0.8,
+    edgecolor='black',
+    linewidth=0.5,
+    s=80,
+)
+
+# Apply exponential smoothing for forecasting
+model = ExponentialSmoothing(data_sorted['Number of Reviews'], trend='add', seasonal=None)
+forecast = model.fit().fittedvalues
+
+# Plot the forecast line
+plt.plot(data_sorted['Year'], forecast, color='red', linestyle='--', label='Forecast')
+
+# Set the axis labels and title
+plt.xlabel('Year', fontsize=14)
+plt.ylabel('Number of Reviews', fontsize=14)
+plt.title('Relación entre la fecha de lanzamiento y el número de reviews con Forecasting', fontsize=16, pad=100)
+
+# Set the axis tick label size and rotation
+plt.xticks(fontsize=12, rotation=45)
+plt.yticks(fontsize=12)
+
+# Add grid lines to the plot
+plt.grid(True)
+
+# Add legend
+plt.legend()
+
+# Show the plot
+plt.show()
+# Ajustar el modelo de regresión lineal
+regression_model = LinearRegression()
+regression_model.fit(data[['Year']], data['Wishlist'])
+
+# Generar predicciones lineales para los próximos 5 años
+forecast_years = data['Year'].max() + pd.Series(range(1, 6))
+forecast = regression_model.predict(forecast_years.values.reshape(-1, 1))
+
+# Plot the joint plot
+sns.jointplot(
+    x='Year',
+    y='Wishlist',
+    data=data,
+    alpha=0.8,
+    edgecolor='black',
+    linewidth=0.5,
+    s=80,
+    kind='scatter',
+)
+
+# Set the axis labels and title
+plt.xlabel('Year', fontsize=14)
+plt.ylabel('Wishlist', fontsize=14)
+plt.title('Relación entre el año y el número de reviews', fontsize=16, pad=100)
+
+# Set the axis tick label size
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+
+# Add grid lines to the plot
+plt.grid(True)
+
+# Add forecast
+plt.plot(forecast_years, forecast, color='red', linewidth=2)
+
+# Show the plot
+plt.show()
